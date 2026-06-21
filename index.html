@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart Design Driving School</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.25.6/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#F8FAFC;color:#374151;font-size:14px}
+:root{--primary:#1B4332;--primary-light:#2D6A4F;--accent:#10B981;--accent-light:#D1FAE5;--warning:#F59E0B;--danger:#EF4444}
+.dark body{background:#111827;color:#E5E7EB}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:99px}
+.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .12s}
+.btn:hover{opacity:.9}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-secondary{background:#fff;color:#374151;border:1px solid #E5E7EB}
+.btn-secondary:hover{background:#F9FAFB}
+.btn-danger{background:var(--danger);color:#fff}
+.input{width:100%;border:1px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;outline:none;background:#fff;color:#374151}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(16,185,129,.12)}
+.card{background:#fff;border:1px solid #E5E7EB;border-radius:12px}
+.toast-enter{animation:toastIn .25s ease-out}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.sidebar-nav{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;margin:1px 8px;cursor:pointer;color:rgba(255,255,255,.8);font-size:13px;transition:background .15s}
+.sidebar-nav:hover{background:rgba(255,255,255,.1)}
+.sidebar-nav.active{background:rgba(255,255,255,.18);color:#fff;font-weight:600}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react,env">
+const {useState, useEffect, useMemo, useCallback, createContext, useContext} = React;
+function SimpleBarChart({data, height=180}){
+  const max = Math.max(...data.map(d=>d.amount), 1);
+  return <div style={{display:'flex',alignItems:'flex-end',gap:10,height,paddingTop:20}}>
+    {data.map(d=>(
+      <div key={d.day} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6,height:'100%',justifyContent:'flex-end'}}>
+        <div style={{fontSize:10,fontWeight:600,color:'#1B4332'}}>R{d.amount}</div>
+        <div style={{width:'100%',background:'#10B981',borderRadius:'4px 4px 0 0',height:`${Math.max((d.amount/max)*(height-50),3)}px`,transition:'height .3s'}} />
+        <div style={{fontSize:11,color:'#9CA3AF'}}>{d.day}</div>
+      </div>
+    ))}
+  </div>;
+}
+
+/* ============================= DEMO MODE ==============================
+   This single-file build runs entirely in DEMO MODE with built-in sample
+   data — no backend, no database, no environment variables required.
+   It deploys as a 100% static site straight to Vercel.
+
+   Want real persistent data (Supabase)? See the README for the upgrade
+   path — it explains how to wire this file up to a database later
+   without starting over.
+========================================================================= */
+
+/* ---------------------------- SEED DATA -------------------------------- */
+const seedStudents = [
+  {id:'s1',full_name:'Sipho Nkosi',id_number:'9501015009087',phone:'082 111 2222',email:'sipho@email.com',licence_code:'Code 8',instructor:'James Mokoena',lessons_completed:12,status:'Test Ready'},
+  {id:'s2',full_name:'Thandi Dlamini',id_number:'9203220056088',phone:'073 222 3333',email:'thandi@email.com',licence_code:'Code 8',instructor:'Sarah Williams',lessons_completed:8,status:'Active'},
+  {id:'s3',full_name:'Mpho Sithole',id_number:'0012150034089',phone:'064 333 4444',email:'mpho@email.com',licence_code:'Code 8',instructor:'James Mokoena',lessons_completed:5,status:'Active'},
+  {id:'s4',full_name:'Lerato Mokoena',id_number:'9905110078090',phone:'071 444 5555',email:'lerato@email.com',licence_code:'Code 10',instructor:'Sarah Williams',lessons_completed:15,status:'Test Ready'},
+  {id:'s5',full_name:'Bongani Zulu',id_number:'0107220091091',phone:'082 555 6666',email:'bongani@email.com',licence_code:'Code 8',instructor:'James Mokoena',lessons_completed:3,status:'Active'},
+  {id:'s6',full_name:'Zanele Khumalo',id_number:'9811300102092',phone:'073 666 7777',email:'zanele@email.com',licence_code:'Code 8',instructor:'Sarah Williams',lessons_completed:10,status:'On Hold'},
+  {id:'s7',full_name:'Nhlanhla Buthelezi',id_number:'0209140113093',phone:'064 777 8888',email:'nhlanhla@email.com',licence_code:'Code 14',instructor:'James Mokoena',lessons_completed:7,status:'Active'},
+  {id:'s8',full_name:'Ayanda Mthembu',id_number:'9604280124094',phone:'071 888 9999',email:'ayanda@email.com',licence_code:'Code 8',instructor:'Sarah Williams',lessons_completed:20,status:'Passed'},
+];
+const seedInstructors = [
+  {id:'i1',full_name:'James Mokoena',phone:'082 100 2000',email:'james@sdds.co.za',licence_no:'PDP-12345',categories:'Code 8, 10, 14',status:'Available',on_duty:true,employment_status:'Employed'},
+  {id:'i2',full_name:'Sarah Williams',phone:'073 200 3000',email:'sarah@sdds.co.za',licence_no:'PDP-67890',categories:'Code 8',status:'Busy (In Lesson)',on_duty:true,employment_status:'Employed'},
+  {id:'i3',full_name:'Thabo Nkosi',phone:'064 300 4000',email:'thabo@sdds.co.za',licence_no:'PDP-11111',categories:'Code 8, 10',status:'On Leave',on_duty:false,employment_status:'Contract'},
+];
+const seedVehicles = [
+  {id:'v1',make:'Toyota',model:'Corolla',year:2020,reg_no:'KZN 123 456',transmission:'Manual',colour:'White',disc_expiry:'2025-06-24',insurance_expiry:'2025-12-01',rw_expiry:'2025-09-15',status:'Available'},
+  {id:'v2',make:'VW',model:'Polo',year:2021,reg_no:'KZN 789 012',transmission:'Manual',colour:'Silver',disc_expiry:'2025-10-15',insurance_expiry:'2025-11-30',rw_expiry:'2025-11-20',status:'Booked (In Use)'},
+  {id:'v3',make:'Toyota',model:'Hilux',year:2019,reg_no:'KZN 345 678',transmission:'Manual',colour:'Blue',disc_expiry:'2025-08-20',insurance_expiry:'2025-10-10',rw_expiry:'2025-07-05',status:'Maintenance Due'},
+  {id:'v4',make:'Hyundai',model:'Accent',year:2022,reg_no:'KZN 901 234',transmission:'Auto',colour:'Red',disc_expiry:'2025-11-30',insurance_expiry:'2026-01-15',rw_expiry:'2026-01-10',status:'Available'},
+];
+const seedLessons = [
+  {id:'l1',student:'Sipho Nkosi',date:'2025-06-06',time:'08:00',instructor:'James Mokoena',vehicle:'Toyota Corolla',type:'Pre-Test',duration:'1hr',status:'Completed'},
+  {id:'l2',student:'Thandi Dlamini',date:'2025-06-06',time:'09:00',instructor:'Sarah Williams',vehicle:'VW Polo',type:'Refresher',duration:'1hr',status:'In Progress'},
+  {id:'l3',student:'Mpho Sithole',date:'2025-06-06',time:'10:30',instructor:'James Mokoena',vehicle:'Toyota Corolla',type:'First Lesson',duration:'1hr',status:'Scheduled'},
+  {id:'l4',student:'Lerato Mokoena',date:'2025-06-06',time:'13:00',instructor:'Sarah Williams',vehicle:'VW Polo',type:'Highway',duration:'1hr 30min',status:'Scheduled'},
+  {id:'l5',student:'Bongani Zulu',date:'2025-06-06',time:'15:00',instructor:'James Mokoena',vehicle:'Toyota Corolla',type:'First Lesson',duration:'1hr',status:'Scheduled'},
+  {id:'l6',student:'Zanele Khumalo',date:'2025-06-05',time:'09:00',instructor:'Sarah Williams',vehicle:'VW Polo',type:'Night Driving',duration:'1hr',status:'Completed'},
+];
+const seedTests = [
+  {id:'t1',student:'Sipho Nkosi',licence_code:'Code 8',centre:'PMB Testing Centre',date:'2025-06-09',time:'08:00',reference:'TC2025-001',instructor:'James Mokoena',status:'Booked'},
+  {id:'t2',student:'Thandi Dlamini',licence_code:'Code 8',centre:'Durban North',date:'2025-06-10',time:'09:00',reference:'TC2025-002',instructor:'Sarah Williams',status:'Booked'},
+  {id:'t3',student:'Lerato Mokoena',licence_code:'Code 10',centre:'PMB Testing Centre',date:'2025-06-12',time:'10:00',reference:'TC2025-003',instructor:'Sarah Williams',status:'Rebook Required'},
+  {id:'t4',student:'Ayanda Mthembu',licence_code:'Code 8',centre:'Durban North',date:'2025-05-20',time:'09:00',reference:'TC2025-004',instructor:'James Mokoena',status:'Completed – Passed'},
+];
+const seedPayments = [
+  {id:'p1',invoice_no:'INV-001',student:'Sipho Nkosi',service:'Driving Lessons x4',amount_due:1400,amount_paid:1400,method:'EFT',date:'2025-06-01',status:'Paid in Full'},
+  {id:'p2',invoice_no:'INV-002',student:'Thandi Dlamini',service:'Driving Lessons x2',amount_due:700,amount_paid:350,method:'Cash',date:'2025-06-02',status:'Partially Paid'},
+  {id:'p3',invoice_no:'INV-003',student:'Mpho Sithole',service:'Driving Lessons x5',amount_due:1750,amount_paid:0,method:'-',date:'-',status:'Outstanding'},
+  {id:'p4',invoice_no:'INV-004',student:'Lerato Mokoena',service:'Test Booking',amount_due:450,amount_paid:450,method:'Card',date:'2025-06-03',status:'Paid in Full'},
+  {id:'p5',invoice_no:'INV-005',student:'Bongani Zulu',service:'Driving Lessons x4',amount_due:1400,amount_paid:0,method:'-',date:'-',status:'Overdue'},
+  {id:'p6',invoice_no:'INV-006',student:'Zanele Khumalo',service:"Learner's Licence",amount_due:1200,amount_paid:200,method:'EFT',date:'2025-04-15',status:'Overdue'},
+];
+const seedProgress = {
+  'Sipho Nkosi':[4,4,3,4,4,4,4,4,3,4,4,4],
+  'Thandi Dlamini':[2,2,1,2,3,2,3,2,2,3,2,2],
+  'Mpho Sithole':[1,1,1,1,2,1,2,1,1,1,1,1],
+  'Lerato Mokoena':[3,3,4,3,4,4,4,3,3,4,3,3],
+};
+const skillsList = ['Parking (Bay)','Parking (Reverse)','Parallel Parking','Alley Docking','Hill Starts','Emergency Stops','Gear Control','Lane Changes','Traffic Awareness','Road Signs','Defensive Driving','Test Readiness'];
+const progressLevels = ['Beginner','Developing','Competent','Advanced','Test Ready'];
+const seedRevenueWeek = [{day:'Mon',amount:800},{day:'Tue',amount:1200},{day:'Wed',amount:900},{day:'Thu',amount:1500},{day:'Fri',amount:1400},{day:'Sat',amount:600},{day:'Sun',amount:0}];
+const seedBusiness = {business_name:'Smart Design Driving School',phone:'+27 33 123 4567',email:'info@smartdesigndriving.co.za',website:'www.smartdesigndriving.co.za',address:'12 Main Street, Pietermaritzburg, KZN',registration_number:'2019/123456/07',vat_number:'4560123456',default_lesson_duration:60,default_lesson_rate:350};
+
+/* ---------------------------- STATUS COLORS ----------------------------- */
+const STATUS_COLORS = {
+  'Active':'#DBEAFE,#1E40AF','On Hold':'#FEF3C7,#92400E','Test Ready':'#D1FAE5,#065F46','Passed':'#DCFCE7,#166534','Withdrawn':'#F3F4F6,#374151','Archived':'#F3F4F6,#6B7280',
+  'Scheduled':'#F3F4F6,#374151','In Progress':'#DBEAFE,#1E40AF','Completed':'#DCFCE7,#166534','Cancelled':'#FEE2E2,#991B1B','Rescheduled':'#FEF3C7,#92400E','Missed':'#FEE2E2,#991B1B',
+  'Booked':'#DBEAFE,#1E40AF','Completed – Passed':'#DCFCE7,#166534','Completed – Failed':'#FEE2E2,#991B1B','Rebook Required':'#FEF3C7,#92400E','Postponed':'#F3F4F6,#374151',
+  'Paid in Full':'#DCFCE7,#166534','Partially Paid':'#FEF3C7,#92400E','Outstanding':'#FEF3C7,#92400E','Overdue':'#FEE2E2,#991B1B','Refunded':'#DBEAFE,#1E40AF',
+  'Available':'#DCFCE7,#166534','Booked (In Use)':'#DBEAFE,#1E40AF','Maintenance Due':'#FEF3C7,#92400E','Out of Service':'#FEE2E2,#991B1B','Inspection Required':'#FEF3C7,#92400E',
+  'Busy (In Lesson)':'#DBEAFE,#1E40AF','On Leave':'#FEF3C7,#92400E','Unavailable':'#FEE2E2,#991B1B','Inactive':'#F3F4F6,#6B7280',
+};
+function Badge({status, children}){
+  const [bg,fg] = (STATUS_COLORS[status]||'#F3F4F6,#374151').split(',');
+  return <span className="badge" style={{background:bg,color:fg}}>{children||status}</span>;
+}
+
+/* ------------------------------- TOAST ----------------------------------- */
+const ToastCtx = createContext(null);
+function ToastProvider({children}){
+  const [toasts,setToasts]=useState([]);
+  const showToast=useCallback((message,type='success')=>{
+    const id=Date.now()+Math.random();
+    setToasts(p=>[...p,{id,message,type}]);
+    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),3000);
+  },[]);
+  const COLORS={success:'#1B4332',warning:'#F59E0B',error:'#EF4444',info:'#374151'};
+  return <ToastCtx.Provider value={{showToast}}>
+    {children}
+    <div style={{position:'fixed',bottom:24,right:24,zIndex:999,display:'flex',flexDirection:'column',gap:8}}>
+      {toasts.map(t=>(
+        <div key={t.id} className="toast-enter" style={{background:COLORS[t.type],color:'#fff',padding:'12px 18px',borderRadius:10,fontSize:13,fontWeight:500,boxShadow:'0 4px 16px rgba(0,0,0,0.2)'}}>{t.message}</div>
+      ))}
+    </div>
+  </ToastCtx.Provider>;
+}
+const useToast=()=>useContext(ToastCtx);
+
+/* ---------------------------- DATA STORE (in-memory) ---------------------------- */
+function useStore(seed){
+  const [rows,setRows]=useState(seed);
+  const add=(r)=>{const nr={id:'id-'+Date.now()+Math.random(),...r};setRows(p=>[nr,...p]);return nr;};
+  const update=(id,patch)=>setRows(p=>p.map(r=>r.id===id?{...r,...patch}:r));
+  const remove=(id)=>setRows(p=>p.filter(r=>r.id!==id));
+  return {rows,add,update,remove};
+}
+
+/* ------------------------------- MODAL ------------------------------------ */
+function Modal({open,onClose,title,children,width=480}){
+  if(!open) return null;
+  return <div onClick={e=>{if(e.target===e.currentTarget)onClose();}} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+    <div style={{background:'#fff',borderRadius:16,padding:24,width:'100%',maxWidth:width,maxHeight:'85vh',overflowY:'auto'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <h3 style={{fontSize:16,fontWeight:700,color:'#1B4332'}}>{title}</h3>
+        <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,color:'#9CA3AF'}}>✕</button>
+      </div>
+      {children}
+    </div>
+  </div>;
+}
+function Field({label,children}){
+  return <div style={{marginBottom:12}}>
+    <label style={{display:'block',fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>{label}</label>
+    {children}
+  </div>;
+}
+function FieldRow({children}){return <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>{children}</div>;}
+
+/* ------------------------------ STAT CARD ---------------------------------- */
+function StatCard({icon,label,value,sub,subColor='#9CA3AF',valueColor='#1B4332',onClick}){
+  return <div onClick={onClick} className="card" style={{padding:16,cursor:onClick?'pointer':'default',position:'relative'}}>
+    <span style={{position:'absolute',top:12,right:12,fontSize:26,opacity:0.15}}>{icon}</span>
+    <div style={{fontSize:11,color:'#6B7280',fontWeight:500,textTransform:'uppercase'}}>{label}</div>
+    <div style={{fontSize:24,fontWeight:700,marginTop:4,color:valueColor}}>{value}</div>
+    {sub && <div style={{fontSize:11,marginTop:2,color:subColor}}>{sub}</div>}
+  </div>;
+}
+
+/* ================================ PAGES ==================================== */
+function Dashboard({nav}){
+  const todayLessons = seedLessons.filter(l=>l.date==='2025-06-06');
+  const outstanding = seedPayments.filter(p=>p.status==='Outstanding'||p.status==='Overdue');
+  return <div>
+    <p style={{fontSize:13,color:'#6B7280',marginBottom:16}}>Live overview — refreshes automatically every 60 seconds</p>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:24}}>
+      <StatCard icon="👥" label="Total Students" value="24" sub="↑ 3 this month" subColor="#10B981" onClick={()=>nav('students')} />
+      <StatCard icon="📅" label="Lessons Today" value="8" sub="Next: 09:00" onClick={()=>nav('lessons')} />
+      <StatCard icon="🪪" label="Tests Booked" value="5" sub="2 this week" onClick={()=>nav('tests')} />
+      <StatCard icon="⚠️" label="Outstanding" value="R 4,200" sub="3 students" subColor="#EF4444" valueColor="#EF4444" onClick={()=>nav('payments')} />
+      <StatCard icon="🚗" label="Vehicles Available" value="3" sub="1 in use" onClick={()=>nav('vehicles')} />
+      <StatCard icon="✅" label="Instructors On Duty" value="2" sub="of 3 active" onClick={()=>nav('instructors')} />
+      <StatCard icon="📈" label="Weekly Revenue" value="R 6,800" sub="↑ 12% vs last week" subColor="#10B981" valueColor="#10B981" />
+      <StatCard icon="🗓️" label="Monthly Revenue" value="R 24,500" sub="Target: R 30,000" subColor="#10B981" valueColor="#10B981" />
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+      <div className="card" style={{padding:16}}>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}><strong style={{fontSize:13,color:'#1B4332'}}>Today's Lesson Schedule</strong><span style={{fontSize:11,color:'#9CA3AF'}}>6 June 2025</span></div>
+        {todayLessons.map(l=>(
+          <div key={l.id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid #F3F4F6'}}>
+            <div style={{fontSize:12,fontWeight:700,color:'#1B4332',width:48}}>{l.time}</div>
+            <div style={{flex:1}}><div style={{fontSize:13,fontWeight:500}}>{l.student}</div><div style={{fontSize:11,color:'#9CA3AF'}}>{l.instructor} · {l.vehicle}</div></div>
+            <Badge status={l.status} />
+          </div>
+        ))}
+      </div>
+      <div className="card" style={{padding:16}}>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}><strong style={{fontSize:13,color:'#1B4332'}}>Weekly Revenue</strong><span style={{fontSize:11,color:'#9CA3AF'}}>Mon – Sun</span></div>
+        <SimpleBarChart data={seedRevenueWeek} height={180} />
+      </div>
+      <div className="card" style={{padding:16}}>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:12}}><strong style={{fontSize:13,color:'#1B4332'}}>Upcoming Driving Tests</strong><span style={{fontSize:11,color:'#9CA3AF'}}>Next 7 days</span></div>
+        {seedTests.filter(t=>t.status==='Booked'||t.status==='Rebook Required').map(t=>(
+          <div key={t.id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid #F3F4F6'}}>
+            <div style={{fontSize:12,fontWeight:700,color:'#1B4332',width:56}}>{t.date}</div>
+            <div style={{flex:1}}><div style={{fontSize:13,fontWeight:500}}>{t.student}</div><div style={{fontSize:11,color:'#9CA3AF'}}>{t.licence_code} · {t.centre}</div></div>
+            <Badge status={t.status} />
+          </div>
+        ))}
+      </div>
+      <div className="card" style={{padding:16}}>
+        <div style={{marginBottom:12}}><strong style={{fontSize:13,color:'#1B4332'}}>Outstanding Balances</strong></div>
+        {outstanding.map(p=>(
+          <div key={p.id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid #F3F4F6'}}>
+            <div style={{flex:1}}><div style={{fontSize:13,fontWeight:500}}>{p.student}</div><div style={{fontSize:11,color:'#9CA3AF'}}>{p.status==='Overdue'?'Overdue':'Last payment '+p.date}</div></div>
+            <span style={{fontSize:13,fontWeight:700,color:p.status==='Overdue'?'#EF4444':'#F59E0B'}}>R {(p.amount_due-p.amount_paid).toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>;
+}
+
+function Students(){
+  const {rows,add,update,remove} = useStore(seedStudents);
+  const {showToast} = useToast();
+  const [search,setSearch]=useState('');
+  const [statusFilter,setStatusFilter]=useState('All');
+  const [modalOpen,setModalOpen]=useState(false);
+  const [editing,setEditing]=useState(null);
+  const [form,setForm]=useState({});
+  const STATUSES=['Active','On Hold','Test Ready','Passed','Withdrawn','Archived'];
+
+  const filtered = rows.filter(s=>{
+    const ms = !search || s.full_name.toLowerCase().includes(search.toLowerCase()) || s.id_number.includes(search) || s.phone.includes(search);
+    const mf = statusFilter==='All' || s.status===statusFilter;
+    return ms && mf;
+  });
+  const openAdd=()=>{setEditing(null);setForm({status:'Active',licence_code:'Code 8',lessons_completed:0});setModalOpen(true);};
+  const openEdit=(s)=>{setEditing(s);setForm(s);setModalOpen(true);};
+  const handleSave=()=>{
+    if(!form.full_name||!form.id_number||!form.phone){showToast('Please fill required fields','error');return;}
+    if(editing){update(editing.id,form);showToast('Student updated','success');}
+    else{add(form);showToast('Student added','success');}
+    setModalOpen(false);
+  };
+
+  return <div>
+    <p style={{fontSize:13,color:'#6B7280',marginBottom:16}}>{rows.length} students registered</p>
+    <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
+      <input className="input" style={{flex:1,minWidth:200}} placeholder="Search by name, ID, phone..." value={search} onChange={e=>setSearch(e.target.value)} />
+      <select className="input" style={{width:'auto'}} value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
+        <option>All</option>{STATUSES.map(s=><option key={s}>{s}</option>)}
+      </select>
+      <button className="btn btn-primary" onClick={openAdd}>+ Add Student</button>
+      <button className="btn btn-secondary" onClick={()=>showToast('Exported to CSV','success')}>⬇ Export</button>
+    </div>
+    <div className="card" style={{overflow:'hidden'}}>
+      <table style={{width:'100%',fontSize:13,borderCollapse:'collapse'}}>
+        <thead><tr style={{background:'#1B4332',color:'#fff',fontSize:12}}>
+          {['Student','ID Number','Phone','Licence','Instructor','Lessons','Status','Actions'].map(h=>
+            <th key={h} style={{textAlign:'left',padding:'10px 14px',fontWeight:600}}>{h}</th>)}
+        </tr></thead>
+        <tbody>{filtered.map((s,i)=>(
+          <tr key={s.id} style={{background:i%2===0?'#fff':'#FAFBFF'}}>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}><div style={{fontWeight:500}}>{s.full_name}</div><div style={{fontSize:11,color:'#9CA3AF'}}>{s.email}</div></td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6',fontFamily:'monospace',fontSize:12}}>{s.id_number}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>{s.phone}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>{s.licence_code}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>{s.instructor}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6',fontWeight:600}}>{s.lessons_completed}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}><Badge status={s.status} /></td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>
+              <button onClick={()=>openEdit(s)} style={{border:'none',background:'none',cursor:'pointer',marginRight:6}} title="Edit">✏️</button>
+              <button onClick={()=>{update(s.id,{status:'Archived'});showToast(s.full_name+' archived','info');}} style={{border:'none',background:'none',cursor:'pointer',marginRight:6}} title="Archive">🗂️</button>
+              <button onClick={()=>{remove(s.id);showToast(s.full_name+' removed','warning');}} style={{border:'none',background:'none',cursor:'pointer'}} title="Delete">🗑️</button>
+            </td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </div>
+    <Modal open={modalOpen} onClose={()=>setModalOpen(false)} title={editing?'Edit Student':'Add New Student'}>
+      <FieldRow>
+        <Field label="Full Name *"><input className="input" value={form.full_name||''} onChange={e=>setForm({...form,full_name:e.target.value})} /></Field>
+        <Field label="ID Number *"><input className="input" value={form.id_number||''} onChange={e=>setForm({...form,id_number:e.target.value})} /></Field>
+      </FieldRow>
+      <FieldRow>
+        <Field label="Phone *"><input className="input" value={form.phone||''} onChange={e=>setForm({...form,phone:e.target.value})} /></Field>
+        <Field label="Email"><input className="input" value={form.email||''} onChange={e=>setForm({...form,email:e.target.value})} /></Field>
+      </FieldRow>
+      <FieldRow>
+        <Field label="Licence Code"><select className="input" value={form.licence_code||'Code 8'} onChange={e=>setForm({...form,licence_code:e.target.value})}><option>Code 8</option><option>Code 10</option><option>Code 14</option></select></Field>
+        <Field label="Instructor"><select className="input" value={form.instructor||''} onChange={e=>setForm({...form,instructor:e.target.value})}><option value="">Unassigned</option><option>James Mokoena</option><option>Sarah Williams</option></select></Field>
+      </FieldRow>
+      <Field label="Status"><select className="input" value={form.status||'Active'} onChange={e=>setForm({...form,status:e.target.value})}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select></Field>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:8}}>
+        <button className="btn btn-secondary" onClick={()=>setModalOpen(false)}>Cancel</button>
+        <button className="btn btn-primary" onClick={handleSave}>{editing?'Save Changes':'Save Student'}</button>
+      </div>
+    </Modal>
+  </div>;
+}
+
+function Lessons(){
+  const {rows,add,update,remove} = useStore(seedLessons);
+  const {showToast} = useToast();
+  const [tab,setTab]=useState(0);
+  const [modalOpen,setModalOpen]=useState(false);
+  const [form,setForm]=useState({});
+  const [statusFilter,setStatusFilter]=useState('All');
+  const STATUSES=['Scheduled','In Progress','Completed','Cancelled','Rescheduled','Missed'];
+  const filtered = statusFilter==='All'?rows:rows.filter(l=>l.status===statusFilter);
+
+  const openAdd=()=>{setForm({student:seedStudents[0].full_name,instructor:'James Mokoena',vehicle:'Toyota Corolla',date:'2025-06-07',time:'09:00',duration:'1hr',type:'First Lesson',status:'Scheduled'});setModalOpen(true);};
+  const handleSave=()=>{
+    const clash = rows.find(l=>l.instructor===form.instructor && l.date===form.date && l.time===form.time);
+    if(clash){showToast(form.instructor+' already booked at that time','error');return;}
+    add(form);showToast('Lesson created','success');setModalOpen(false);
+  };
+
+  return <div>
+    <div style={{display:'flex',gap:4,marginBottom:20,borderBottom:'2px solid #E5E7EB'}}>
+      {['List View','Calendar View','Daily View'].map((t,i)=>(
+        <div key={t} onClick={()=>setTab(i)} style={{padding:'8px 16px',fontSize:13,fontWeight:tab===i?700:500,cursor:'pointer',color:tab===i?'#1B4332':'#9CA3AF',borderBottom:tab===i?'2px solid #1B4332':'2px solid transparent',marginBottom:-2}}>{t}</div>
+      ))}
+    </div>
+    {tab===0 && <div>
+      <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
+        <input className="input" style={{flex:1,minWidth:200}} placeholder="Search lessons..." />
+        <select className="input" style={{width:'auto'}} value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option>All</option>{STATUSES.map(s=><option key={s}>{s}</option>)}</select>
+        <button className="btn btn-primary" onClick={openAdd}>+ Create Lesson</button>
+      </div>
+      <div className="card" style={{overflow:'hidden'}}>
+        <table style={{width:'100%',fontSize:13,borderCollapse:'collapse'}}>
+          <thead><tr style={{background:'#1B4332',color:'#fff',fontSize:12}}>{['Student','Date & Time','Instructor','Vehicle','Type','Status','Actions'].map(h=><th key={h} style={{textAlign:'left',padding:'10px 14px'}}>{h}</th>)}</tr></thead>
+          <tbody>{filtered.map((l,i)=>(
+            <tr key={l.id} style={{background:i%2===0?'#fff':'#FAFBFF'}}>
+              <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6',fontWeight:500}}>{l.student}</td>
+              <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>{l.date} {l.time}</td>
+              <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>{l.instructor}</td>
+              <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>{l.vehicle}</td>
+              <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}><Badge status="Booked">{l.type}</Badge></td>
+              <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>
+                <select className="input" style={{width:'auto',padding:'3px 8px',fontSize:11}} value={l.status} onChange={e=>{update(l.id,{status:e.target.value});showToast('Status updated','success');}}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select>
+              </td>
+              <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}><button onClick={()=>{remove(l.id);showToast('Lesson removed','warning');}} style={{border:'none',background:'none',color:'#EF4444',cursor:'pointer',fontSize:12}}>Delete</button></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </div>}
+    {tab===1 && <div className="card" style={{padding:24}}>
+      <div style={{fontSize:14,fontWeight:600,color:'#1B4332',marginBottom:16}}>June 2025</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:8}}>
+        {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=><div key={d} style={{textAlign:'center',fontSize:11,fontWeight:600,color:'#9CA3AF',paddingBottom:8}}>{d}</div>)}
+        {Array.from({length:30},(_,i)=>{
+          const d=`2025-06-${String(i+1).padStart(2,'0')}`;
+          const count=rows.filter(l=>l.date===d).length;
+          return <div key={d} style={{aspectRatio:'1',border:'1px solid #F3F4F6',borderRadius:8,padding:6,fontSize:11,display:'flex',flexDirection:'column'}}>
+            <span style={{color:'#9CA3AF'}}>{i+1}</span>
+            {count>0 && <div style={{marginTop:'auto',display:'flex',gap:2,flexWrap:'wrap'}}>{Array.from({length:Math.min(count,4)}).map((_,j)=><span key={j} style={{width:6,height:6,borderRadius:99,background:'#10B981'}}/>)}</div>}
+          </div>;
+        })}
+      </div>
+    </div>}
+    {tab===2 && <div className="card" style={{padding:20}}>
+      <div style={{fontSize:15,fontWeight:700,color:'#1B4332',marginBottom:16}}>Friday, 6 June 2025</div>
+      {rows.filter(l=>l.date==='2025-06-06').map(l=>(
+        <div key={l.id} style={{display:'flex',alignItems:'center',gap:12,padding:10,borderRadius:8,background:'#F8FAFC',marginBottom:6}}>
+          <div style={{fontSize:14,fontWeight:700,color:'#1B4332',width:56}}>{l.time}</div>
+          <div style={{flex:1}}><div style={{fontWeight:500}}>{l.student}</div><div style={{fontSize:11,color:'#9CA3AF'}}>{l.instructor} · {l.vehicle} · {l.type}</div></div>
+          <Badge status={l.status} />
+        </div>
+      ))}
+    </div>}
+    <Modal open={modalOpen} onClose={()=>setModalOpen(false)} title="Create Lesson">
+      <FieldRow>
+        <Field label="Student"><select className="input" value={form.student} onChange={e=>setForm({...form,student:e.target.value})}>{seedStudents.map(s=><option key={s.id}>{s.full_name}</option>)}</select></Field>
+        <Field label="Instructor"><select className="input" value={form.instructor} onChange={e=>setForm({...form,instructor:e.target.value})}><option>James Mokoena</option><option>Sarah Williams</option></select></Field>
+      </FieldRow>
+      <FieldRow>
+        <Field label="Date"><input className="input" type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} /></Field>
+        <Field label="Time"><input className="input" type="time" value={form.time} onChange={e=>setForm({...form,time:e.target.value})} /></Field>
+      </FieldRow>
+      <FieldRow>
+        <Field label="Vehicle"><select className="input" value={form.vehicle} onChange={e=>setForm({...form,vehicle:e.target.value})}><option>Toyota Corolla</option><option>VW Polo</option><option>Hyundai Accent</option></select></Field>
+        <Field label="Type"><select className="input" value={form.type} onChange={e=>setForm({...form,type:e.target.value})}><option>First Lesson</option><option>Refresher</option><option>Pre-Test</option><option>Highway</option><option>Night Driving</option></select></Field>
+      </FieldRow>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:8}}>
+        <button className="btn btn-secondary" onClick={()=>setModalOpen(false)}>Cancel</button>
+        <button className="btn btn-primary" onClick={handleSave}>Create Lesson</button>
+      </div>
+    </Modal>
+  </div>;
+}
+
+function Tests(){
+  const {rows,add,update,remove} = useStore(seedTests);
+  const {showToast} = useToast();
+  const [statusFilter,setStatusFilter]=useState('All');
+  const [modalOpen,setModalOpen]=useState(false);
+  const [form,setForm]=useState({});
+  const STATUSES=['Booked','Completed – Passed','Completed – Failed','Rebook Required','Cancelled','Postponed'];
+  const filtered = statusFilter==='All'?rows:rows.filter(t=>t.status===statusFilter);
+  const openAdd=()=>{setForm({student:seedStudents[0].full_name,licence_code:'Code 8',instructor:'James Mokoena',status:'Booked'});setModalOpen(true);};
+  const handleSave=()=>{if(!form.centre||!form.date){showToast('Fill in centre and date','error');return;}add(form);showToast('Booking saved','success');setModalOpen(false);};
+
+  return <div>
+    <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
+      <input className="input" style={{flex:1,minWidth:200}} placeholder="Search by student, reference..." />
+      <select className="input" style={{width:'auto'}} value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option>All</option>{STATUSES.map(s=><option key={s}>{s}</option>)}</select>
+      <button className="btn btn-primary" onClick={openAdd}>+ New Booking</button>
+    </div>
+    <div className="card" style={{overflow:'hidden'}}>
+      <table style={{width:'100%',fontSize:13,borderCollapse:'collapse'}}>
+        <thead><tr style={{background:'#1B4332',color:'#fff',fontSize:12}}>{['Student','Licence','Centre','Date','Reference','Instructor','Status','Actions'].map(h=><th key={h} style={{textAlign:'left',padding:'10px 14px'}}>{h}</th>)}</tr></thead>
+        <tbody>{filtered.map((t,i)=>(
+          <tr key={t.id} style={{background:i%2===0?'#fff':'#FAFBFF'}}>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6',fontWeight:500}}>{t.student}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>{t.licence_code}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>{t.centre}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>{t.date}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6',fontFamily:'monospace',fontSize:11}}>{t.reference}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>{t.instructor}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>
+              <select className="input" style={{width:'auto',padding:'3px 8px',fontSize:11}} value={t.status} onChange={e=>{update(t.id,{status:e.target.value});showToast('Status updated','success');}}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select>
+            </td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}><button onClick={()=>{remove(t.id);showToast('Removed','warning');}} style={{border:'none',background:'none',color:'#EF4444',cursor:'pointer',fontSize:12}}>Delete</button></td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </div>
+    <Modal open={modalOpen} onClose={()=>setModalOpen(false)} title="New Test Booking">
+      <FieldRow>
+        <Field label="Student"><select className="input" value={form.student} onChange={e=>setForm({...form,student:e.target.value})}>{seedStudents.map(s=><option key={s.id}>{s.full_name}</option>)}</select></Field>
+        <Field label="Licence Code"><select className="input" value={form.licence_code} onChange={e=>setForm({...form,licence_code:e.target.value})}><option>Code 8</option><option>Code 10</option><option>Code 14</option></select></Field>
+      </FieldRow>
+      <FieldRow>
+        <Field label="Testing Centre"><input className="input" onChange={e=>setForm({...form,centre:e.target.value})} placeholder="e.g. PMB Testing Centre" /></Field>
+        <Field label="Reference"><input className="input" onChange={e=>setForm({...form,reference:e.target.value})} placeholder="TC2025-005" /></Field>
+      </FieldRow>
+      <Field label="Date"><input className="input" type="date" onChange={e=>setForm({...form,date:e.target.value})} /></Field>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:8}}>
+        <button className="btn btn-secondary" onClick={()=>setModalOpen(false)}>Cancel</button>
+        <button className="btn btn-primary" onClick={handleSave}>Save Booking</button>
+      </div>
+    </Modal>
+  </div>;
+}
+
+function Instructors(){
+  const {rows,add,update} = useStore(seedInstructors);
+  const {showToast} = useToast();
+  const [modalOpen,setModalOpen]=useState(false);
+  const [form,setForm]=useState({});
+  const openAdd=()=>{setForm({status:'Available',on_duty:false,employment_status:'Employed'});setModalOpen(true);};
+  const handleSave=()=>{if(!form.full_name||!form.phone){showToast('Fill in name and phone','error');return;}add(form);showToast('Instructor added','success');setModalOpen(false);};
+  const studentCounts={'James Mokoena':4,'Sarah Williams':3,'Thabo Nkosi':0};
+
+  return <div>
+    <p style={{fontSize:13,color:'#6B7280',marginBottom:16}}>{rows.length} active instructors</p>
+    <div style={{display:'flex',gap:10,marginBottom:16}}>
+      <input className="input" style={{maxWidth:280}} placeholder="Search instructors..." />
+      <button className="btn btn-primary" onClick={openAdd}>+ Add Instructor</button>
+    </div>
+    <div className="card">
+      {rows.map((i,idx)=>(
+        <div key={i.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderTop:idx>0?'1px solid #F3F4F6':'none'}}>
+          <div style={{width:36,height:36,borderRadius:'50%',background:'#1B4332',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,flexShrink:0}}>{i.full_name.split(' ').map(n=>n[0]).join('')}</div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13}}>{i.full_name}</div><div style={{fontSize:11,color:'#9CA3AF'}}>{i.phone} · {i.email}</div></div>
+          <div style={{textAlign:'center',width:60}}><div style={{fontSize:18,fontWeight:800,color:'#1B4332'}}>{studentCounts[i.full_name]||0}</div><div style={{fontSize:10,color:'#9CA3AF'}}>Students</div></div>
+          <div style={{width:96}}><Badge status={i.status} /></div>
+          <div style={{display:'flex',alignItems:'center',gap:8,width:110}}>
+            <span style={{fontSize:11,color:'#9CA3AF'}}>Duty</span>
+            <button onClick={()=>{update(i.id,{on_duty:!i.on_duty});showToast(i.full_name+(i.on_duty?' off duty':' on duty'),'success');}} style={{width:44,height:24,borderRadius:99,border:'none',cursor:'pointer',background:i.on_duty?'#10B981':'#D1D5DB',position:'relative'}}>
+              <span style={{position:'absolute',top:3,left:i.on_duty?22:3,width:18,height:18,background:'#fff',borderRadius:'50%',transition:'left .2s'}} />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+    <Modal open={modalOpen} onClose={()=>setModalOpen(false)} title="Add Instructor">
+      <FieldRow>
+        <Field label="Full Name *"><input className="input" onChange={e=>setForm({...form,full_name:e.target.value})} /></Field>
+        <Field label="Phone *"><input className="input" onChange={e=>setForm({...form,phone:e.target.value})} /></Field>
+      </FieldRow>
+      <FieldRow>
+        <Field label="Email"><input className="input" onChange={e=>setForm({...form,email:e.target.value})} /></Field>
+        <Field label="Licence No."><input className="input" onChange={e=>setForm({...form,licence_no:e.target.value})} /></Field>
+      </FieldRow>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:8}}>
+        <button className="btn btn-secondary" onClick={()=>setModalOpen(false)}>Cancel</button>
+        <button className="btn btn-primary" onClick={handleSave}>Save Instructor</button>
+      </div>
+    </Modal>
+  </div>;
+}
+
+function Vehicles(){
+  const {rows,add} = useStore(seedVehicles);
+  const {showToast} = useToast();
+  const [modalOpen,setModalOpen]=useState(false);
+  const [form,setForm]=useState({});
+  const daysUntil=(d)=>Math.round((new Date(d)-new Date('2025-06-06'))/86400000);
+  const alerts=[];
+  rows.forEach(v=>{[['Licence Disc',v.disc_expiry],['Insurance',v.insurance_expiry],['Roadworthy',v.rw_expiry]].forEach(([label,date])=>{const d=daysUntil(date);if(d<=30&&d>=0)alerts.push(`${v.make} ${v.model} (${v.reg_no}) — ${label} expires in ${d} days`);});});
+  const openAdd=()=>{setForm({transmission:'Manual',status:'Available'});setModalOpen(true);};
+  const handleSave=()=>{if(!form.reg_no){showToast('Registration number required','error');return;}add(form);showToast('Vehicle added','success');setModalOpen(false);};
+
+  return <div>
+    {alerts.map((m,i)=>(<div key={i} style={{background:'#DBEAFE',color:'#1E40AF',border:'1px solid #BFDBFE',borderRadius:8,padding:'10px 16px',fontSize:13,marginBottom:8}}>⚠ {m} — renewal required</div>))}
+    <div style={{display:'flex',gap:10,marginBottom:16}}>
+      <input className="input" style={{maxWidth:280}} placeholder="Search by make, model, reg..." />
+      <button className="btn btn-primary" onClick={openAdd}>+ Add Vehicle</button>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14}}>
+      {rows.map(v=>(
+        <div key={v.id} className="card" style={{padding:14,display:'flex',flexDirection:'column',gap:8}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <div><div style={{fontWeight:700,fontSize:13,color:'#1B4332'}}>{v.make} {v.model} {v.year}</div><div style={{fontSize:11,color:'#9CA3AF'}}>{v.reg_no} · {v.colour} · {v.transmission}</div></div>
+            <Badge status={v.status} />
+          </div>
+          <div style={{fontSize:11,color:'#6B7280'}}><div>Disc: {v.disc_expiry}</div><div>Insurance: {v.insurance_expiry}</div><div>Roadworthy: {v.rw_expiry}</div></div>
+          <div style={{display:'flex',gap:6,marginTop:4}}>
+            <button className="btn btn-secondary" style={{fontSize:11,padding:'4px 8px'}} onClick={()=>showToast('Editing '+v.reg_no,'info')}>Edit</button>
+            <button className="btn btn-secondary" style={{fontSize:11,padding:'4px 8px'}} onClick={()=>showToast('Maintenance logged','success')}>Maintenance</button>
+          </div>
+        </div>
+      ))}
+    </div>
+    <Modal open={modalOpen} onClose={()=>setModalOpen(false)} title="Add Vehicle">
+      <FieldRow>
+        <Field label="Make"><input className="input" onChange={e=>setForm({...form,make:e.target.value})} /></Field>
+        <Field label="Model"><input className="input" onChange={e=>setForm({...form,model:e.target.value})} /></Field>
+      </FieldRow>
+      <Field label="Registration Number *"><input className="input" onChange={e=>setForm({...form,reg_no:e.target.value})} /></Field>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:8}}>
+        <button className="btn btn-secondary" onClick={()=>setModalOpen(false)}>Cancel</button>
+        <button className="btn btn-primary" onClick={handleSave}>Save Vehicle</button>
+      </div>
+    </Modal>
+  </div>;
+}
+
+function ProgressPage(){
+  const [selected,setSelected]=useState('');
+  const {showToast} = useToast();
+  const scores = seedProgress[selected]||skillsList.map(()=>2);
+  const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
+  const levelIdx = avg<1.5?0:avg<2.5?1:avg<3.5?2:avg<4.5?3:4;
+  return <div>
+    <div style={{display:'flex',gap:10,marginBottom:20}}>
+      <select className="input" style={{width:260}} value={selected} onChange={e=>setSelected(e.target.value)}>
+        <option value="">Select Student</option>{seedStudents.map(s=><option key={s.id} value={s.full_name}>{s.full_name}</option>)}
+      </select>
+      <button className="btn btn-secondary" onClick={()=>showToast('Report exported','success')}>⬇ Export Report</button>
+    </div>
+    {!selected && <div className="card" style={{padding:40,textAlign:'center',color:'#9CA3AF'}}>Select a student to view their progress</div>}
+    {selected && <div className="card" style={{padding:20}}>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:16}}>
+        <div><div style={{fontSize:18,fontWeight:800,color:'#1B4332'}}>{selected}</div><div style={{fontSize:13,color:'#9CA3AF'}}>Overall Level: <strong>{progressLevels[levelIdx]}</strong></div></div>
+        <Badge status={levelIdx>=3?'Test Ready':'Active'}>{progressLevels[levelIdx]}</Badge>
+      </div>
+      <div style={{background:'#E5E7EB',borderRadius:99,height:12,marginBottom:20}}><div style={{background:'#10B981',height:12,borderRadius:99,width:`${(avg/4)*100}%`}} /></div>
+      {skillsList.map((skill,i)=>(
+        <div key={skill} style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}>
+          <div style={{fontSize:12,width:160,color:'#374151'}}>{skill}</div>
+          <div style={{flex:1,background:'#E5E7EB',borderRadius:99,height:8}}><div style={{background:'#10B981',height:8,borderRadius:99,width:`${(scores[i]/4)*100}%`}} /></div>
+          <select className="input" style={{width:'auto',fontSize:11,padding:'3px 6px'}} defaultValue={progressLevels[scores[i]]} onChange={()=>showToast(skill+' updated','success')}>{progressLevels.map(l=><option key={l}>{l}</option>)}</select>
+        </div>
+      ))}
+    </div>}
+  </div>;
+}
+
+function Payments(){
+  const {rows,add} = useStore(seedPayments);
+  const {showToast} = useToast();
+  const [statusFilter,setStatusFilter]=useState('All');
+  const [modalOpen,setModalOpen]=useState(false);
+  const [form,setForm]=useState({});
+  const STATUSES=['Paid in Full','Partially Paid','Outstanding','Overdue','Refunded','Cancelled'];
+  const filtered = statusFilter==='All'?rows:rows.filter(p=>p.status===statusFilter);
+  const totalCollected = rows.reduce((s,p)=>s+p.amount_paid,0);
+  const outstanding = rows.reduce((s,p)=>s+(p.amount_due-p.amount_paid),0);
+  const overdueCount = rows.filter(p=>p.status==='Overdue').length;
+  const openAdd=()=>{setForm({student:seedStudents[0].full_name,method:'Cash'});setModalOpen(true);};
+  const handleSave=()=>{
+    if(!form.amount_due){showToast('Enter amount due','error');return;}
+    const due=parseFloat(form.amount_due)||0, paid=parseFloat(form.amount_paid)||0;
+    const status = paid>=due?'Paid in Full':paid>0?'Partially Paid':'Outstanding';
+    add({...form,amount_due:due,amount_paid:paid,status,invoice_no:'INV-'+String(rows.length+1).padStart(3,'0'),date:new Date().toISOString().slice(0,10)});
+    showToast('Payment recorded — receipt generated','success');setModalOpen(false);
+  };
+
+  return <div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}}>
+      <div style={{background:'#1B4332',color:'#fff',borderRadius:12,padding:16,textAlign:'center'}}><div style={{fontSize:22,fontWeight:800}}>R {totalCollected.toLocaleString()}</div><div style={{fontSize:11,opacity:0.8,marginTop:4}}>Total Collected</div></div>
+      <div style={{background:'#F59E0B',color:'#fff',borderRadius:12,padding:16,textAlign:'center'}}><div style={{fontSize:22,fontWeight:800}}>R {outstanding.toLocaleString()}</div><div style={{fontSize:11,opacity:0.8,marginTop:4}}>Outstanding</div></div>
+      <div style={{background:'#EF4444',color:'#fff',borderRadius:12,padding:16,textAlign:'center'}}><div style={{fontSize:22,fontWeight:800}}>{overdueCount}</div><div style={{fontSize:11,opacity:0.8,marginTop:4}}>Overdue Accounts</div></div>
+    </div>
+    <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap'}}>
+      <input className="input" style={{flex:1,minWidth:200}} placeholder="Search by student, invoice..." />
+      <select className="input" style={{width:'auto'}} value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option>All</option>{STATUSES.map(s=><option key={s}>{s}</option>)}</select>
+      <button className="btn btn-primary" onClick={openAdd}>+ Add Payment</button>
+    </div>
+    <div className="card" style={{overflow:'hidden'}}>
+      <table style={{width:'100%',fontSize:13,borderCollapse:'collapse'}}>
+        <thead><tr style={{background:'#1B4332',color:'#fff',fontSize:12}}>{['Invoice','Student','Service','Due','Paid','Balance','Status'].map(h=><th key={h} style={{textAlign:'left',padding:'10px 14px'}}>{h}</th>)}</tr></thead>
+        <tbody>{filtered.map((p,i)=>(
+          <tr key={p.id} style={{background:i%2===0?'#fff':'#FAFBFF'}}>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6',fontFamily:'monospace',fontSize:11}}>{p.invoice_no}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6',fontWeight:500}}>{p.student}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>{p.service}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>R {p.amount_due.toLocaleString()}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}>R {p.amount_paid.toLocaleString()}</td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}><strong style={{color:p.amount_due-p.amount_paid>0?'#EF4444':'#10B981'}}>R {(p.amount_due-p.amount_paid).toLocaleString()}</strong></td>
+            <td style={{padding:'10px 14px',borderTop:'1px solid #F3F4F6'}}><Badge status={p.status} /></td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </div>
+    <Modal open={modalOpen} onClose={()=>setModalOpen(false)} title="Add Payment">
+      <FieldRow>
+        <Field label="Student"><select className="input" value={form.student} onChange={e=>setForm({...form,student:e.target.value})}>{seedStudents.map(s=><option key={s.id}>{s.full_name}</option>)}</select></Field>
+        <Field label="Service"><input className="input" onChange={e=>setForm({...form,service:e.target.value})} /></Field>
+      </FieldRow>
+      <FieldRow>
+        <Field label="Amount Due (R)"><input className="input" type="number" onChange={e=>setForm({...form,amount_due:e.target.value})} /></Field>
+        <Field label="Amount Paid (R)"><input className="input" type="number" onChange={e=>setForm({...form,amount_paid:e.target.value})} /></Field>
+      </FieldRow>
+      <div style={{display:'flex',justifyContent:'flex-end',gap:8,marginTop:8}}>
+        <button className="btn btn-secondary" onClick={()=>setModalOpen(false)}>Cancel</button>
+        <button className="btn btn-primary" onClick={handleSave}>Save Payment</button>
+      </div>
+    </Modal>
+  </div>;
+}
+
+function Finance(){
+  const [tab,setTab]=useState(0);
+  const {showToast} = useToast();
+  const dailyRevenue=[{label:'Driving Lessons',amount:2000,pct:80},{label:'Test Bookings',amount:750,pct:30},{label:'Admin Fees',amount:380,pct:15}];
+  const dailyExpenses=[{label:'Fuel',amount:450,pct:40},{label:'Instructor Cost',amount:800,pct:55},{label:'Admin',amount:120,pct:10}];
+  const totalRev=dailyRevenue.reduce((a,b)=>a+b.amount,0), totalExp=dailyExpenses.reduce((a,b)=>a+b.amount,0);
+  return <div>
+    <div style={{display:'flex',gap:4,marginBottom:20,borderBottom:'2px solid #E5E7EB'}}>
+      {['Daily','Weekly','Monthly'].map((t,i)=>(<div key={t} onClick={()=>setTab(i)} style={{padding:'8px 16px',fontSize:13,fontWeight:tab===i?700:500,cursor:'pointer',color:tab===i?'#1B4332':'#9CA3AF',borderBottom:tab===i?'2px solid #1B4332':'2px solid transparent',marginBottom:-2}}>{t}</div>))}
+    </div>
+    {tab===0 && <div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+        <div className="card" style={{padding:16}}>
+          <div style={{fontSize:13,fontWeight:700,color:'#10B981',marginBottom:12}}>📈 Daily Revenue</div>
+          {dailyRevenue.map(r=>(<div key={r.label} style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}><div style={{fontSize:12,width:120}}>{r.label}</div><div style={{flex:1,background:'#E5E7EB',borderRadius:4,height:14}}><div style={{background:'#10B981',height:14,borderRadius:4,width:r.pct+'%'}} /></div><div style={{fontSize:12,fontWeight:600,width:60,textAlign:'right'}}>R {r.amount}</div></div>))}
+        </div>
+        <div className="card" style={{padding:16}}>
+          <div style={{fontSize:13,fontWeight:700,color:'#EF4444',marginBottom:12}}>📉 Daily Expenses</div>
+          {dailyExpenses.map(r=>(<div key={r.label} style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}><div style={{fontSize:12,width:120}}>{r.label}</div><div style={{flex:1,background:'#E5E7EB',borderRadius:4,height:14}}><div style={{background:'#EF4444',height:14,borderRadius:4,width:r.pct+'%'}} /></div><div style={{fontSize:12,fontWeight:600,width:60,textAlign:'right'}}>R {r.amount}</div></div>))}
+        </div>
+      </div>
+      <div className="card" style={{padding:16}}>
+        <div style={{fontSize:13,fontWeight:700,color:'#1B4332',marginBottom:12}}>Daily Summary — 6 June 2025</div>
+        <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #F3F4F6'}}><span>Total Revenue</span><span style={{color:'#10B981',fontWeight:700}}>R {totalRev}</span></div>
+        <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #F3F4F6'}}><span>Total Expenses</span><span style={{color:'#EF4444'}}>R {totalExp}</span></div>
+        <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0'}}><span style={{fontWeight:700}}>Net Profit</span><span style={{color:'#1B4332',fontWeight:800,fontSize:16}}>R {totalRev-totalExp}</span></div>
+      </div>
+    </div>}
+    {tab===1 && <div className="card" style={{padding:16}}>
+      <div style={{fontSize:13,fontWeight:700,color:'#1B4332',marginBottom:16}}>Weekly Summary — 2–8 June 2025</div>
+      <SimpleBarChart data={seedRevenueWeek} height={200} />
+    </div>}
+    {tab===2 && <div className="card" style={{padding:16}}>
+      <div style={{fontSize:13,fontWeight:700,color:'#1B4332',marginBottom:16}}>Monthly Overview — June 2025</div>
+      <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #F3F4F6'}}><span>Total Revenue</span><span style={{color:'#10B981',fontWeight:700}}>R 24,500</span></div>
+      <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #F3F4F6'}}><span>Total Expenses</span><span style={{color:'#EF4444'}}>R 9,200</span></div>
+      <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0'}}><span style={{fontWeight:700}}>Net Profit</span><span style={{color:'#1B4332',fontWeight:800}}>R 15,300</span></div>
+    </div>}
+    <div style={{display:'flex',gap:8,marginTop:16}}>
+      {['PDF','Excel','Print','Email'].map(o=><button key={o} className="btn btn-secondary" style={{fontSize:12}} onClick={()=>showToast(o+' export ready','success')}>{o} Report</button>)}
+    </div>
+  </div>;
+}
+
+function Reports(){
+  const {showToast} = useToast();
+  const REPORTS=[
+    {name:'Student Report',desc:'Full student register',icon:'👥',color:'#1B4332'},
+    {name:'Instructor Report',desc:'Activity summary',icon:'✅',color:'#2D6A4F'},
+    {name:'Vehicle Report',desc:'Fleet & compliance',icon:'🚗',color:'#10B981'},
+    {name:'Lesson Schedule',desc:'By date / instructor',icon:'📅',color:'#3B82F6'},
+    {name:'Driving Test Report',desc:'Outcomes & history',icon:'🪪',color:'#8B5CF6'},
+    {name:'Payments Report',desc:'Outstanding balances',icon:'💳',color:'#F59E0B'},
+    {name:'Financial Report',desc:'Revenue & profit',icon:'📊',color:'#EF4444'},
+    {name:'Monthly Operations',desc:'Full month summary',icon:'🗓️',color:'#1B4332'},
+  ];
+  return <div>
+    <p style={{fontSize:13,color:'#6B7280',marginBottom:20}}>Generate, download and share operational reports</p>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+      {REPORTS.map(r=>(
+        <div key={r.name} className="card" style={{padding:16}}>
+          <div style={{display:'flex',gap:12,marginBottom:12,alignItems:'center'}}>
+            <div style={{width:40,height:40,background:r.color,borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{r.icon}</div>
+            <div><div style={{fontWeight:700,fontSize:13}}>{r.name}</div><div style={{fontSize:11,color:'#9CA3AF'}}>{r.desc}</div></div>
+          </div>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            {['PDF','Excel','Print','Email'].map(o=><button key={o} className="btn btn-secondary" style={{fontSize:11,padding:'4px 8px'}} onClick={()=>showToast(r.name+' — '+o+' ready','success')}>{o}</button>)}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>;
+}
+
+function SettingsPage(){
+  const [tab,setTab]=useState(0);
+  const [biz,setBiz]=useState(seedBusiness);
+  const {showToast} = useToast();
+  return <div>
+    <div style={{display:'flex',gap:4,marginBottom:20,borderBottom:'2px solid #E5E7EB'}}>
+      {['Business','Users','System'].map((t,i)=>(<div key={t} onClick={()=>setTab(i)} style={{padding:'8px 16px',fontSize:13,fontWeight:tab===i?700:500,cursor:'pointer',color:tab===i?'#1B4332':'#9CA3AF',borderBottom:tab===i?'2px solid #1B4332':'2px solid transparent',marginBottom:-2}}>{t}</div>))}
+    </div>
+    {tab===0 && <div className="card" style={{padding:20,maxWidth:600}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+        <Field label="Business Name"><input className="input" value={biz.business_name} onChange={e=>setBiz({...biz,business_name:e.target.value})} /></Field>
+        <Field label="Contact Number"><input className="input" value={biz.phone} onChange={e=>setBiz({...biz,phone:e.target.value})} /></Field>
+        <Field label="Email"><input className="input" value={biz.email} onChange={e=>setBiz({...biz,email:e.target.value})} /></Field>
+        <Field label="Website"><input className="input" value={biz.website} onChange={e=>setBiz({...biz,website:e.target.value})} /></Field>
+      </div>
+      <Field label="Address"><input className="input" value={biz.address} onChange={e=>setBiz({...biz,address:e.target.value})} /></Field>
+      <button className="btn btn-primary" onClick={()=>showToast('Settings saved','success')}>Save Changes</button>
+    </div>}
+    {tab===1 && <div className="card" style={{padding:16}}>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:16}}><strong style={{fontSize:13}}>System Users</strong><button className="btn btn-primary" style={{fontSize:12}} onClick={()=>showToast('Invite sent','success')}>+ Invite User</button></div>
+      {[['Admin User','admin@smartdesigndriving.co.za','Admin'],['James Mokoena','james@smartdesigndriving.co.za','Instructor'],['Sarah Williams','sarah@smartdesigndriving.co.za','Instructor']].map(([n,e,r])=>(
+        <div key={e} style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #F3F4F6',fontSize:13}}><span style={{fontWeight:500}}>{n}</span><span style={{color:'#9CA3AF'}}>{e}</span><Badge status="Active">{r}</Badge></div>
+      ))}
+    </div>}
+    {tab===2 && <div className="card" style={{padding:16,maxWidth:500}}>
+      <div style={{fontSize:13,fontWeight:700,color:'#1B4332',marginBottom:12}}>System Preferences</div>
+      {['Vehicle Expiry Reminders','Overdue Payment Alerts','Dashboard Auto-Refresh'].map(label=>(
+        <div key={label} style={{display:'flex',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #F3F4F6'}}><span style={{fontSize:13}}>{label}</span><span style={{color:'#10B981',fontSize:12}}>● Enabled</span></div>
+      ))}
+    </div>}
+  </div>;
+}
+
+function ShareDemo(){
+  const [link,setLink]=useState('');
+  const {showToast} = useToast();
+  const generate=()=>{
+    const token='sdds-'+Math.random().toString(36).substr(2,10).toUpperCase();
+    setLink(window.location.origin+window.location.pathname+'?demo='+token);
+    showToast('Secure demo link generated','success');
+  };
+  return <div>
+    <p style={{fontSize:13,color:'#6B7280',marginBottom:20}}>Generate a secure demo link to share with prospective clients</p>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+      <div className="card" style={{padding:20}}>
+        <div style={{fontSize:13,fontWeight:700,color:'#1B4332',marginBottom:16}}>🔗 Generate Demo Link</div>
+        <Field label="Expiry Period"><select className="input"><option>24 Hours</option><option>7 Days</option><option>14 Days</option></select></Field>
+        <Field label="Client Name"><input className="input" placeholder="e.g. ABC Driving Academy" /></Field>
+        <button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} onClick={generate}>Generate Secure Link</button>
+      </div>
+      <div className="card" style={{padding:20}}>
+        <div style={{fontSize:13,fontWeight:700,color:'#1B4332',marginBottom:16}}>📋 Share Options</div>
+        <div style={{background:'#F8FAFC',border:'1px solid #E5E7EB',borderRadius:8,padding:16,marginBottom:16,minHeight:70,display:'flex',alignItems:'center',justifyContent:'center',textAlign:'center'}}>
+          {link?<code style={{fontSize:11,color:'#10B981',wordBreak:'break-all'}}>{link}</code>:<span style={{color:'#9CA3AF',fontSize:13}}>Generate a link to see share options</span>}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <button className="btn btn-secondary" style={{fontSize:12}} onClick={()=>showToast('Link copied','success')}>Copy Link</button>
+          <button className="btn btn-secondary" style={{fontSize:12}} onClick={()=>showToast('Email opened','info')}>Email Link</button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+/* ============================== APP SHELL ================================ */
+const NAV = [
+  {section:'Main',items:[{id:'dashboard',label:'Dashboard',icon:'📊'}]},
+  {section:'Management',items:[{id:'students',label:'Students',icon:'👥'},{id:'lessons',label:'Lessons',icon:'📅'},{id:'tests',label:'Driving Tests',icon:'🪪'},{id:'instructors',label:'Instructors',icon:'✅'},{id:'vehicles',label:'Vehicles',icon:'🚗'}]},
+  {section:'Learning',items:[{id:'progress',label:'Progress',icon:'📈'}]},
+  {section:'Finance',items:[{id:'payments',label:'Payments',icon:'💳'},{id:'finance',label:'Financial',icon:'📋'}]},
+  {section:'Tools',items:[{id:'reports',label:'Reports',icon:'📄'},{id:'settings',label:'Settings',icon:'⚙️'}]},
+];
+const TITLES = {dashboard:'Operations Dashboard',students:'Student Management',lessons:'Lesson Scheduling',tests:'Driving Test Bookings',instructors:'Instructor Management',vehicles:'Vehicle Management',progress:'Student Progress',payments:'Payment Management',finance:'Financial Reconciliation',reports:'Reporting Centre',settings:'Settings',share:'Share Demo'};
+
+function App(){
+  const [page,setPage]=useState('dashboard');
+  const {showToast} = useToast();
+  const PAGES = {dashboard:<Dashboard nav={setPage}/>,students:<Students/>,lessons:<Lessons/>,tests:<Tests/>,instructors:<Instructors/>,vehicles:<Vehicles/>,progress:<ProgressPage/>,payments:<Payments/>,finance:<Finance/>,reports:<Reports/>,settings:<SettingsPage/>,share:<ShareDemo/>};
+
+  return <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
+    <aside style={{width:220,background:'#1B4332',color:'#fff',display:'flex',flexDirection:'column',flexShrink:0,overflowY:'auto'}}>
+      <div style={{padding:'20px 16px 12px',borderBottom:'1px solid rgba(255,255,255,0.1)'}}>
+        <div style={{width:36,height:36,background:'#10B981',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:8,fontSize:18}}>🚗</div>
+        <div style={{fontSize:13,fontWeight:700}}>Smart Design</div>
+        <div style={{fontSize:11,color:'rgba(255,255,255,0.6)'}}>Driving School</div>
+      </div>
+      {NAV.map(sec=>(
+        <div key={sec.section}>
+          <div style={{padding:'12px 12px 4px',fontSize:10,fontWeight:600,letterSpacing:1,color:'rgba(255,255,255,0.4)',textTransform:'uppercase'}}>{sec.section}</div>
+          {sec.items.map(item=>(
+            <div key={item.id} className={'sidebar-nav'+(page===item.id?' active':'')} onClick={()=>setPage(item.id)}>
+              <span>{item.icon}</span>{item.label}
+            </div>
+          ))}
+        </div>
+      ))}
+    </aside>
+    <main style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      <header style={{height:52,background:'#fff',borderBottom:'1px solid #E5E7EB',padding:'0 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+        <div style={{fontSize:16,fontWeight:600,color:'#1B4332'}}>{TITLES[page]}</div>
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <button onClick={()=>showToast('No new notifications','info')} style={{background:'none',border:'none',cursor:'pointer',fontSize:15,color:'#9CA3AF'}}>🔔</button>
+          <button onClick={()=>setPage('share')} style={{background:'#10B981',color:'#fff',border:'none',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:700,cursor:'pointer'}}>🔗 Share Demo</button>
+          <div style={{display:'flex',alignItems:'center',gap:8,paddingLeft:8,borderLeft:'1px solid #E5E7EB'}}>
+            <div style={{width:32,height:32,borderRadius:'50%',background:'#1B4332',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700}}>AD</div>
+            <div style={{lineHeight:1.2}}><div style={{fontSize:13,fontWeight:600}}>Admin User</div><div style={{fontSize:11,color:'#9CA3AF'}}>Administrator</div></div>
+          </div>
+        </div>
+      </header>
+      <div style={{flex:1,overflowY:'auto',padding:24}}>{PAGES[page]}</div>
+    </main>
+  </div>;
+}
+
+function Root(){
+  return <ToastProvider><App/></ToastProvider>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root/>);
+</script>
+</body>
+</html>
